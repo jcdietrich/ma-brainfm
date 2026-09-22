@@ -1,6 +1,7 @@
 """Async client for Brain.fm's unofficial API."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -33,31 +34,56 @@ class BrainfmClient:
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
         self._session = session
-
-    async def login(self, email: str, password: str) -> str:
+        self._cf_bm: str | None = None
+    async def login(self, email: str, password: str, *, cf_bm: str | None = None) -> str:
         """Authenticate and return session token.
 
         Raises LoginFailed on invalid credentials.
         """
+        self._cf_bm = cf_bm
         url = f"{BRAINFM_API_BASE}/auth/email-login"
-        payload = {"email": email, "password": password, "type": "LOGIN"}
+        payload = {"email": email, "password": password}
         headers = {
             "Content-Type": "application/json",
+            "Accept": "application/json, text/plain, */*",
             "Origin": "https://my.brain.fm",
             "Referer": "https://my.brain.fm/",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
         }
-        logger.debug("Brain.fm login request to %s", url)
-        async with self._session.post(url, json=payload, headers=headers) as resp:
-            logger.debug("Brain.fm login response: status=%d", resp.status)
-            if resp.status == 401 or resp.status == 403:
-                raise LoginFailed("Invalid email or password")
-            if resp.status != 200:
-                raise APIError(f"Login failed with status {resp.status}")
-            data: dict[str, Any] = await resp.json()
-            token = data.get("token")
-            if not token:
-                raise APIError("Login response missing token")
-            return token
+        if cf_bm:
+            headers["Cookie"] = f"__cf_bm={cf_bm}"
+        logger.debug("Brain.fm login request to %s (cf_bm=%s)", url, bool(cf_bm))
+        last_exc: Exception | None = None
+        for attempt in range(4):
+            if attempt > 0:
+                delay = min(2 ** attempt * 2, 30)
+                logger.debug("Retrying login in %ds (attempt %d/4)", delay, attempt + 1)
+                await asyncio.sleep(delay)
+            async with self._session.post(url, json=payload, headers=headers) as resp:
+                body_text = await resp.text()
+                logger.debug("Brain.fm login response: status=%d body=%s", resp.status, body_text[:200])
+                if resp.status == 200:
+                    try:
+                        data: dict[str, Any] = await resp.json()
+                    except Exception:
+                        data = {}
+                    token = data.get("token")
+                    if not token:
+                        raise APIError(f"Login response missing token: {body_text[:200]}")
+                    return token
+                error_msg = body_text.lower()
+                if "incorrect" in error_msg or "invalid" in error_msg or "password" in error_msg:
+                    raise LoginFailed(f"Invalid email or password: {body_text[:200]}")
+                if resp.status == 429:
+                    last_exc = APIError("Rate limited by Cloudflare (429)")
+                    continue
+                if resp.status in (400, 401, 403):
+                    raise LoginFailed(f"Login rejected ({resp.status}): {body_text[:200]}")
+                raise APIError(f"Login failed with status {resp.status}: {body_text[:200]}")
+        raise last_exc  # type: ignore[misc]
 
     async def get_stations(self, session_token: str) -> list[dict[str, Any]]:
         """Fetch available stations from the API.

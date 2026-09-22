@@ -54,6 +54,7 @@ class BrainfmRadioProvider(MusicProvider):
         """Authenticate and fetch station list."""
         email = self.get_config_value("email")
         password = self.get_config_value("password")
+        cookie = self.get_config_value("cookie")
 
         if not email or not password:
             logger.error("Brain.fm credentials not configured")
@@ -63,7 +64,7 @@ class BrainfmRadioProvider(MusicProvider):
         self._client = BrainfmClient(http_session)
 
         try:
-            self._session_token = await self._client.login(email, password)
+            self._session_token = await self._client.login(email, password, cf_bm=cookie)
             self._stations = await self._client.get_stations(self._session_token)
         except BrainfmError as err:
             logger.error("Failed to authenticate with Brain.fm: %s", err)

@@ -2,7 +2,9 @@
   "setup_flow": {
     "credentials": {
       "title": "Connect your Brain.fm account",
-      "description": "Enter your Brain.fm email and password."
+      "description": "Enter your Brain.fm email and password.\n\n" +
+        "Optional: If login fails due to Cloudflare, open brain.fm in your browser, " +
+        "open DevTools → Application → Cookies → api.brain.fm, and copy the __cf_bm value."
     }
   },
   "errors": {
