@@ -6,5 +6,6 @@
   "codeowners": ["@jcd"],
   "requirements": [],
   "documentation": "https://github.com/jcd/ma-brainfm",
+  "icon": "icon.webp",
   "multi_instances": false
 }

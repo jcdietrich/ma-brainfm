@@ -8,7 +8,7 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 
-BRAINFM_API_BASE = "https://api.brain.fm/api/v1"
+BRAINFM_API_BASE = "https://api.brain.fm/v2"
 BRAINFM_STREAM_BASE = "https://stream.brain.fm"
 
 
@@ -39,8 +39,8 @@ class BrainfmClient:
 
         Raises LoginFailed on invalid credentials.
         """
-        url = f"{BRAINFM_API_BASE}/login"
-        payload = {"email": email, "password": password}
+        url = f"{BRAINFM_API_BASE}/auth/email-login"
+        payload = {"email": email, "password": password, "type": "LOGIN"}
         async with self._session.post(url, json=payload) as resp:
             if resp.status == 401 or resp.status == 403:
                 raise LoginFailed("Invalid email or password")
@@ -70,7 +70,7 @@ class BrainfmClient:
 
         Raises TokenError on failure.
         """
-        url = f"{BRAINFM_API_BASE}/get-token"
+        url = f"{BRAINFM_API_BASE}/tokens"
         headers = {"Authorization": f"Bearer {session_token}"}
         payload = {"stationId": station_id}
         async with self._session.post(url, json=payload, headers=headers) as resp:

@@ -6,7 +6,7 @@ from music_assistant_models.enums import ConfigEntryType
 
 from music_assistant.models.setup_flow import SetupSession
 
-from .brainfm_client import BrainfmClient, LoginFailed
+from .brainfm_client import BrainfmClient, BrainfmError, LoginFailed, APIError
 
 import aiohttp
 
@@ -42,6 +42,12 @@ async def run_setup(session: SetupSession) -> None:
                 token = await client.login(email, password)
         except LoginFailed:
             errors = {"base": "invalid_credentials"}
+            continue
+        except APIError as err:
+            errors = {"base": "api_error", "detail": str(err)}
+            continue
+        except BrainfmError as err:
+            errors = {"base": "connection_error", "detail": str(err)}
             continue
         await session.finish({"email": email, "password": password})
         return
