@@ -85,3 +85,7 @@ class BrainfmClient:
     def make_stream_url(self, stream_token: str) -> str:
         """Build the HTTP stream URL from a token."""
         return f"{BRAINFM_STREAM_BASE}/?tkn={stream_token}"
+
+    async def close(self) -> None:
+        """Close the underlying HTTP session."""
+        await self._session.close()

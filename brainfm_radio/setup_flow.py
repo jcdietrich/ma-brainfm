@@ -43,5 +43,5 @@ async def run_setup(session: SetupSession) -> None:
         except LoginFailed:
             errors = {"base": "invalid_credentials"}
             continue
-        await session.finish({"email": email, "password": password, "token": token})
+        await session.finish({"email": email, "password": password})
         return

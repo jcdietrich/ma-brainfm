@@ -51,10 +51,9 @@ class BrainfmRadioProvider(MusicProvider):
     _stations: list[dict] | None = None
 
     async def loaded_in_mass(self) -> None:
-        """Validate stored token and fetch station list."""
+        """Authenticate and fetch station list."""
         email = self.get_config_value("email")
         password = self.get_config_value("password")
-        stored_token = self.get_config_value("token")
 
         if not email or not password:
             logger.error("Brain.fm credentials not configured")
@@ -63,25 +62,15 @@ class BrainfmRadioProvider(MusicProvider):
         http_session = aiohttp.ClientSession()
         self._client = BrainfmClient(http_session)
 
-        # Try stored token first, then re-login
-        if stored_token:
-            try:
-                self._stations = await self._client.get_stations(stored_token)
-                self._session_token = stored_token
-                return
-            except BrainfmError:
-                logger.debug("Stored token expired, re-logging in")
-
         try:
             self._session_token = await self._client.login(email, password)
             self._stations = await self._client.get_stations(self._session_token)
         except BrainfmError as err:
             logger.error("Failed to authenticate with Brain.fm: %s", err)
-
     async def unload(self, is_removed: bool = False) -> None:
         """Clean up resources."""
-        if self._client and self._client._session:
-            await self._client._session.close()
+        if self._client:
+            await self._client.close()
 
     @property
     def is_streaming_provider(self) -> bool:
