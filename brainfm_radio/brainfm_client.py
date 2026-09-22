@@ -41,7 +41,14 @@ class BrainfmClient:
         """
         url = f"{BRAINFM_API_BASE}/auth/email-login"
         payload = {"email": email, "password": password, "type": "LOGIN"}
-        async with self._session.post(url, json=payload) as resp:
+        headers = {
+            "Content-Type": "application/json",
+            "Origin": "https://my.brain.fm",
+            "Referer": "https://my.brain.fm/",
+        }
+        logger.debug("Brain.fm login request to %s", url)
+        async with self._session.post(url, json=payload, headers=headers) as resp:
+            logger.debug("Brain.fm login response: status=%d", resp.status)
             if resp.status == 401 or resp.status == 403:
                 raise LoginFailed("Invalid email or password")
             if resp.status != 200:

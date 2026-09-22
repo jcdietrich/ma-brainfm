@@ -6,6 +6,9 @@
     }
   },
   "errors": {
-    "invalid_credentials": "Invalid Brain.fm email or password."
+    "invalid_credentials": "Invalid Brain.fm email or password.",
+    "api_error": "Brain.fm API error: {0}",
+    "connection_error": "Could not connect to Brain.fm: {0}",
+    "rate_limited": "Brain.fm is rate-limiting requests. Please wait a few minutes and try again."
   }
 }

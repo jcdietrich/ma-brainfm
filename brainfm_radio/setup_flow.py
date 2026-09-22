@@ -44,10 +44,13 @@ async def run_setup(session: SetupSession) -> None:
             errors = {"base": "invalid_credentials"}
             continue
         except APIError as err:
-            errors = {"base": "api_error", "detail": str(err)}
+            if "429" in str(err):
+                errors = {"base": "rate_limited"}
+            else:
+                errors = {"base": "api_error"}
             continue
         except BrainfmError as err:
-            errors = {"base": "connection_error", "detail": str(err)}
+            errors = {"base": "connection_error"}
             continue
         await session.finish({"email": email, "password": password})
         return
