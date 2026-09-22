@@ -70,7 +70,7 @@ class BrainfmClient:
                         data: dict[str, Any] = await resp.json()
                     except Exception:
                         data = {}
-                    token = data.get("token")
+                    token = data.get("token") or data.get("result")
                     if not token:
                         raise APIError(f"Login response missing token: {body_text[:200]}")
                     return token
