@@ -8,9 +8,11 @@
     }
   },
   "errors": {
-    "invalid_credentials": "Invalid Brain.fm email or password.",
+    "invalid_credentials": "Invalid Brain.fm email or password. {0}",
     "api_error": "Brain.fm API error: {0}",
     "connection_error": "Could not connect to Brain.fm: {0}",
-    "rate_limited": "Brain.fm is rate-limiting requests. Please wait a few minutes and try again."
+    "rate_limited": "Brain.fm is rate-limiting requests (Cloudflare 429). " +
+      "Wait a few minutes and try again. If this keeps happening, " +
+      "get the __cf_bm cookie from your browser."
   }
 }

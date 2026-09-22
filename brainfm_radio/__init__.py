@@ -19,7 +19,7 @@ from music_assistant_models.streamdetails import StreamDetails
 from music_assistant.models.music_provider import MusicProvider
 
 from .brainfm_client import BrainfmClient, BrainfmError
-from .constants import CATEGORIES, STATIONS
+from .constants import CATEGORIES, MODES
 
 if TYPE_CHECKING:
     from music_assistant_models.config_entries import ConfigEntry, ProviderConfig
@@ -48,13 +48,14 @@ class BrainfmRadioProvider(MusicProvider):
 
     _client: BrainfmClient | None = None
     _session_token: str | None = None
-    _stations: list[dict] | None = None
+    _user_id: str | None = None
+    _activities: dict[str, list[dict]] | None = None
 
     async def loaded_in_mass(self) -> None:
-        """Authenticate and fetch station list."""
-        email = self.get_config_value("email")
-        password = self.get_config_value("password")
-        cookie = self.get_config_value("cookie")
+        """Authenticate and fetch activities for all modes."""
+        email = self.get_setup_value("email")
+        password = self.get_setup_value("password")
+        cookie = self.get_setup_value("cookie")
 
         if not email or not password:
             logger.error("Brain.fm credentials not configured")
@@ -65,9 +66,23 @@ class BrainfmRadioProvider(MusicProvider):
 
         try:
             self._session_token = await self._client.login(email, password, cf_bm=cookie)
-            self._stations = await self._client.get_stations(self._session_token)
+            self._user_id = self._client.get_user_id(self._session_token)
+            logger.info("Brain.fm logged in as user %s", self._user_id)
+
+            # Fetch activities for all modes
+            self._activities = {}
+            for mode in MODES:
+                try:
+                    activities = await self._client.get_activities(self._session_token, mode)
+                    self._activities[mode] = activities
+                    logger.info("Brain.fm %s mode: %d activities", mode, len(activities))
+                except BrainfmError as err:
+                    logger.warning("Failed to fetch %s activities: %s", mode, err)
+                    self._activities[mode] = []
+
         except BrainfmError as err:
             logger.error("Failed to authenticate with Brain.fm: %s", err)
+
     async def unload(self, is_removed: bool = False) -> None:
         """Clean up resources."""
         if self._client:
@@ -80,6 +95,7 @@ class BrainfmRadioProvider(MusicProvider):
 
     async def browse(self, path: str) -> Sequence[MediaItemType | ItemMapping | BrowseFolder]:
         """Browse Brain.fm stations grouped by category."""
+        logger.debug("Brain.fm browse called with path=%r, activities=%s", path, bool(self._activities))
         if path == "" or path == "brainfm://":
             # Return top-level categories
             return [
@@ -93,15 +109,18 @@ class BrainfmRadioProvider(MusicProvider):
 
         if path.startswith("brainfm://"):
             category = path.replace("brainfm://", "")
-            stations = self._get_stations_for_category(category)
+            activities = self._get_activities_for_category(category)
+            logger.debug(
+                "Brain.fm browse category=%r found %d activities", category, len(activities)
+            )
             return [
                 Radio(
-                    item_id=str(s["id"]),
+                    item_id=a["id"],
                     provider=self.instance_id,
-                    name=s["name"],
+                    name=a.get("displayValue", a.get("name", "Unknown")),
                     provider_mappings={
                         ProviderMapping(
-                            item_id=str(s["id"]),
+                            item_id=a["id"],
                             provider_domain=self.domain,
                             provider_instance=self.instance_id,
                             available=True,
@@ -111,25 +130,30 @@ class BrainfmRadioProvider(MusicProvider):
                         )
                     },
                 )
-                for s in stations
+                for a in activities
             ]
-
         return []
 
-    def _get_stations_for_category(self, category: str) -> list[dict]:
-        """Get stations filtered by category, using live data or fallback."""
-        if self._stations:
-            return [s for s in self._stations if s.get("category") == category]
-        return [s for s in STATIONS if s["category"] == category]
+    def _get_activities_for_category(self, category: str) -> list[dict]:
+        """Get activities filtered by category, using live data or fallback."""
+        mode = category.lower()
+        if self._activities and mode in self._activities:
+            return self._activities[mode]
+        return []
 
     async def get_stream_details(self, item_id: str, media_type: MediaType) -> StreamDetails:
-        """Get stream details for a Brain.fm station."""
-        if not self._client or not self._session_token:
+        """Get stream details for a Brain.fm activity."""
+        if not self._client or not self._session_token or not self._user_id:
             raise BrainfmError("Provider not initialized — check credentials")
 
-        station_id = int(item_id)
-        stream_token = await self._client.get_stream_token(self._session_token, station_id)
-        stream_url = self._client.make_stream_url(stream_token)
+        session_info = await self._client.create_session(
+            self._session_token,
+            self._user_id,
+            item_id,
+        )
+        stream_url = session_info.get("tokenedUrl") or session_info.get("cdnUrl", "")
+        if not stream_url:
+            raise BrainfmError("No stream URL in session response")
 
         return StreamDetails(
             provider=self.instance_id,

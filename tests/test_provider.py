@@ -1,4 +1,4 @@
-"""Tests for BrainfmRadioProvider."""
+"""Tests for BrainfmRadioProvider (v3 API)."""
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from brainfm_radio.brainfm_client import BrainfmClient, BrainfmError
@@ -64,11 +64,19 @@ async def test_browse_empty_path_returns_categories(provider):
 
 @pytest.mark.asyncio
 async def test_browse_focus_category(provider):
+    # Set up mock activities
+    provider._activities = {
+        "focus": [
+            {"id": "act_1", "displayValue": "Deep Work"},
+            {"id": "act_2", "displayValue": "Creativity"},
+            {"id": "act_3", "displayValue": "Motivation"},
+        ]
+    }
     result = await provider.browse("brainfm://Focus")
-    assert len(result) >= 5  # At least 5 Focus stations
+    assert len(result) == 3
     names = [r.name for r in result]
-    assert "Focus" in names
-    assert "LoFi Focus" in names
+    assert "Deep Work" in names
+    assert "Creativity" in names
 
 
 @pytest.mark.asyncio
@@ -79,23 +87,39 @@ async def test_browse_unknown_category(provider):
 
 @pytest.mark.asyncio
 async def test_get_stream_details(provider):
-    # Mock the client
     mock_client = AsyncMock(spec=BrainfmClient)
-    mock_client.get_stream_token = AsyncMock(return_value="stream-token-123")
-    mock_client.make_stream_url = MagicMock(return_value="https://stream.brain.fm/?tkn=stream-token-123")
+    mock_client.create_session = AsyncMock(return_value={
+        "tokenedUrl": "https://audio2.brain.fm/track.mp3?token=stream-token-123",
+        "lengthInSeconds": 1200,
+    })
     provider._client = mock_client
     provider._session_token = "session-token"
+    provider._user_id = "user123"
 
     from music_assistant_models.enums import MediaType
-    result = await provider.get_stream_details("35", MediaType.RADIO)
+    result = await provider.get_stream_details("act_1", MediaType.RADIO)
 
-    assert result.stream_type.value == "HTTP"  # StreamType.HTTP
+    assert result.stream_type.value == "HTTP"
     assert "stream-token-123" in result.path
-    mock_client.get_stream_token.assert_called_once_with("session-token", 35)
+    mock_client.create_session.assert_called_once_with("session-token", "user123", "act_1")
 
 
 @pytest.mark.asyncio
 async def test_get_stream_details_no_client(provider):
     from music_assistant_models.enums import MediaType
     with pytest.raises(BrainfmError):
-        await provider.get_stream_details("35", MediaType.RADIO)
+        await provider.get_stream_details("act_1", MediaType.RADIO)
+
+
+@pytest.mark.asyncio
+async def test_get_stream_details_no_url(provider):
+    """Session returns no tokenedUrl — should raise."""
+    mock_client = AsyncMock(spec=BrainfmClient)
+    mock_client.create_session = AsyncMock(return_value={"lengthInSeconds": 600})
+    provider._client = mock_client
+    provider._session_token = "session-token"
+    provider._user_id = "user123"
+
+    from music_assistant_models.enums import MediaType
+    with pytest.raises(BrainfmError, match="No stream URL"):
+        await provider.get_stream_details("act_1", MediaType.RADIO)
