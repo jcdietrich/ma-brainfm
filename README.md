@@ -4,11 +4,35 @@ Play focus, relaxation, and sleep music from Brain.fm through Music Assistant.
 
 ## Installation
 
+### Home Assistant OS (recommended)
+
+One-line install from SSH with Docker access:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jcd/ma-brainfm/main/scripts/install_provider.sh | sh
+```
+
+This copies the provider into the Music Assistant container and restarts it.
+
+**To survive HA restarts**, install the watcher add-on:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jcd/ma-brainfm/main/scripts/install_watcher_addon.sh | sh
+```
+
+Then in HA: **Settings → Add-ons → Store → Refresh → MA Provider Watcher → Install → Start**
+
+Enable **Protection Mode: OFF** for Docker access.
+
+See [WATCHER_ADDON.md](WATCHER_ADDON.md) for details.
+
+### Standalone (pip)
+
 ```bash
 pip install music-assistant-provider-brainfm
 ```
 
-Requires [music-assistant-plugin-manager](https://pypi.org/project/music-assistant-plugin-manager/) to be installed and running.
+Requires [music-assistant-plugin-manager](https://pypi.org/project/music-assistant-plugin-manager/).
 
 ## Setup
 
@@ -19,11 +43,11 @@ Requires [music-assistant-plugin-manager](https://pypi.org/project/music-assista
 
 ## Available Stations
 
-**Focus:** Focus, LoFi Focus, Piano Focus, Electronic Music Focus, Cinematic Music Focus, Beach Focus, Nightsounds Focus, Relaxed Focus, Study Focus
-
-**Relax:** Quick Relax, Unguided Meditation, Guided Meditation
-
-**Sleep:** Nighttime Sleep, Sleep
+| Category | Stations |
+|----------|----------|
+| **Focus** | Focus, LoFi Focus, Piano Focus, Electronic Music Focus, Cinematic Music Focus, Beach Focus, Nightsounds Focus, Relaxed Focus, Study Focus |
+| **Relax** | Quick Relax, Unguided Meditation, Guided Meditation |
+| **Sleep** | Nighttime Sleep, Sleep |
 
 ## Development
 
@@ -33,9 +57,6 @@ pip install -e ".[dev]"
 
 # Run tests
 pytest -v
-
-# Run tests with coverage
-pytest --cov=brainfm_radio -v
 ```
 
 ## Limitations
