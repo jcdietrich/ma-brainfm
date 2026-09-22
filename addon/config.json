@@ -1,0 +1,18 @@
+{
+  "name": "MA Provider Watcher",
+  "version": "1.0.0",
+  "slug": "ma_provider_watcher",
+  "description": "Re-installs custom Music Assistant providers after Home Assistant restarts",
+  "url": "https://github.com/jcd/ma-brainfm",
+  "arch": ["aarch64", "amd64", "armhf", "armv7"],
+  "init": false,
+  "map": ["config:rw", "docker:ro"],
+  "options": {
+    "auto_update": false,
+    "update_interval": 3600
+  },
+  "schema": {
+    "auto_update": "bool",
+    "update_interval": "int"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "configuration": {
+    "options": {
+      "auto_update": {
+        "name": "Auto Update",
+        "description": "Periodically check for provider updates"
+      },
+      "update_interval": {
+        "name": "Update Interval (seconds)",
+        "description": "How often to check for updates"
+      }
+    }
+  }
+}
