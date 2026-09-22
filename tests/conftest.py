@@ -44,7 +44,24 @@ if "music_assistant_models" not in sys.modules:
 
     enums = _create_mock_module("music_assistant_models.enums")
     enums.ConfigEntryType = ConfigEntryType
+    enums.ContentType = Enum("ContentType", {"MPEG": "MPEG"})
+    enums.MediaType = Enum("MediaType", {"RADIO": "RADIO"})
+    enums.ProviderFeature = Enum("ProviderFeature", {"BROWSE": "BROWSE"})
+    enums.StreamType = Enum("StreamType", {"HTTP": "HTTP"})
     sys.modules["music_assistant_models.enums"] = enums
+
+    media_items = _create_mock_module("music_assistant_models.media_items")
+    media_items.BrowseFolder = type("BrowseFolder", (), {"__init__": lambda self, **kwargs: None})
+    media_items.ItemMapping = type("ItemMapping", (), {"__init__": lambda self, **kwargs: None})
+    media_items.MediaItemType = Enum("MediaItemType", {"RADIO": "RADIO"})
+    media_items.Radio = type("Radio", (), {"__init__": lambda self, **kwargs: None})
+    media_items.ProviderMapping = type("ProviderMapping", (), {"__init__": lambda self, **kwargs: None})
+    media_items.AudioFormat = type("AudioFormat", (), {"__init__": lambda self, **kwargs: None})
+    sys.modules["music_assistant_models.media_items"] = media_items
+
+    streamdetails = _create_mock_module("music_assistant_models.streamdetails")
+    streamdetails.StreamDetails = type("StreamDetails", (), {"__init__": lambda self, **kwargs: None})
+    sys.modules["music_assistant_models.streamdetails"] = streamdetails
 
 # Create mock module for music_assistant (server)
 if "music_assistant" not in sys.modules:
@@ -80,3 +97,13 @@ if "music_assistant.models.setup_flow" not in sys.modules:
 
     setup_flow_mod.SetupSession = MockSetupSession
     sys.modules["music_assistant.models.setup_flow"] = setup_flow_mod
+
+if "music_assistant.models.music_provider" not in sys.modules:
+    music_provider_mod = _create_mock_module("music_assistant.models.music_provider")
+    music_provider_mod.MusicProvider = type("MusicProvider", (), {
+        "get_config_value": lambda self, key, default=None: None,
+        "is_streaming_provider": property(lambda self: True),
+        "instance_id": "test_instance",
+        "domain": "brainfm_radio",
+    })
+    sys.modules["music_assistant.models.music_provider"] = music_provider_mod
