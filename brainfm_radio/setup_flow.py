@@ -6,7 +6,7 @@ from music_assistant_models.enums import ConfigEntryType
 
 from music_assistant.models.setup_flow import SetupSession
 
-from brainfm_radio.brainfm_client import BrainfmClient, LoginFailed
+from .brainfm_client import BrainfmClient, LoginFailed
 
 import aiohttp
 

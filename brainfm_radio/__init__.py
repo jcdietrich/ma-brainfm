@@ -18,8 +18,8 @@ from music_assistant_models.streamdetails import StreamDetails
 
 from music_assistant.models.music_provider import MusicProvider
 
-from brainfm_radio.brainfm_client import BrainfmClient, BrainfmError
-from brainfm_radio.constants import CATEGORIES, STATIONS
+from .brainfm_client import BrainfmClient, BrainfmError
+from .constants import CATEGORIES, STATIONS
 
 if TYPE_CHECKING:
     from music_assistant_models.config_entries import ConfigEntry, ProviderConfig
