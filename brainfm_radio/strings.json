@@ -1,0 +1,11 @@
+{
+  "setup_flow": {
+    "credentials": {
+      "title": "Connect your Brain.fm account",
+      "description": "Enter your Brain.fm email and password."
+    }
+  },
+  "errors": {
+    "invalid_credentials": "Invalid Brain.fm email or password."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "type": "music",
+  "domain": "brainfm_radio",
+  "name": "Brain.fm Radio",
+  "description": "Play focus, relaxation, and sleep music from Brain.fm",
+  "codeowners": ["@jcd"],
+  "requirements": [],
+  "documentation": "https://github.com/jcd/ma-brainfm",
+  "multi_instances": false
+}
