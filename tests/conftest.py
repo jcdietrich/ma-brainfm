@@ -51,16 +51,23 @@ if "music_assistant_models" not in sys.modules:
     sys.modules["music_assistant_models.enums"] = enums
 
     media_items = _create_mock_module("music_assistant_models.media_items")
-    media_items.BrowseFolder = type("BrowseFolder", (), {"__init__": lambda self, **kwargs: None})
-    media_items.ItemMapping = type("ItemMapping", (), {"__init__": lambda self, **kwargs: None})
+
+    def _make_dataclass_like(cls_name):
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+        return type(cls_name, (), {"__init__": __init__})
+
+    media_items.BrowseFolder = _make_dataclass_like("BrowseFolder")
+    media_items.ItemMapping = _make_dataclass_like("ItemMapping")
     media_items.MediaItemType = Enum("MediaItemType", {"RADIO": "RADIO"})
-    media_items.Radio = type("Radio", (), {"__init__": lambda self, **kwargs: None})
-    media_items.ProviderMapping = type("ProviderMapping", (), {"__init__": lambda self, **kwargs: None})
-    media_items.AudioFormat = type("AudioFormat", (), {"__init__": lambda self, **kwargs: None})
+    media_items.Radio = _make_dataclass_like("Radio")
+    media_items.ProviderMapping = _make_dataclass_like("ProviderMapping")
+    media_items.AudioFormat = _make_dataclass_like("AudioFormat")
     sys.modules["music_assistant_models.media_items"] = media_items
 
     streamdetails = _create_mock_module("music_assistant_models.streamdetails")
-    streamdetails.StreamDetails = type("StreamDetails", (), {"__init__": lambda self, **kwargs: None})
+    streamdetails.StreamDetails = _make_dataclass_like("StreamDetails")
     sys.modules["music_assistant_models.streamdetails"] = streamdetails
 
 # Create mock module for music_assistant (server)
@@ -100,10 +107,23 @@ if "music_assistant.models.setup_flow" not in sys.modules:
 
 if "music_assistant.models.music_provider" not in sys.modules:
     music_provider_mod = _create_mock_module("music_assistant.models.music_provider")
-    music_provider_mod.MusicProvider = type("MusicProvider", (), {
-        "get_config_value": lambda self, key, default=None: None,
-        "is_streaming_provider": property(lambda self: True),
-        "instance_id": "test_instance",
-        "domain": "brainfm_radio",
-    })
+
+    class MockMusicProvider:
+        def __init__(self, mass, manifest, config, supported_features):
+            self.mass = mass
+            self.manifest = manifest
+            self.config = config
+            self._supported_features = supported_features
+
+        def get_config_value(self, key, default=None):
+            return self.config.get_value(key, default)
+
+        @property
+        def is_streaming_provider(self):
+            return True
+
+        instance_id = "test_instance"
+        domain = "brainfm_radio"
+
+    music_provider_mod.MusicProvider = MockMusicProvider
     sys.modules["music_assistant.models.music_provider"] = music_provider_mod
