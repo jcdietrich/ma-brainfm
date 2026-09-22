@@ -95,23 +95,14 @@ async def test_login_api_error(client):
             await client.login("user@example.com", "password123")
 
 
-@pytest.mark.asyncio
-async def test_login_429_retry_then_success(client):
-    mock_429 = _make_response(429, {"error": "rate limited"})
-    mock_200 = _make_response(200, {"token": "recovered-token"})
-    with patch.object(client._session, "post", side_effect=[mock_429, mock_429, mock_200]):
-        with patch("brainfm_radio.brainfm_client.asyncio.sleep", new_callable=AsyncMock):
-            token = await client.login("user@example.com", "password123")
-            assert token == "recovered-token"
-
 
 @pytest.mark.asyncio
-async def test_login_429_exhausted(client):
+async def test_login_429_raises_immediately(client):
+    """On 429, login should raise immediately — no retry (let the user wait)."""
     mock_429 = _make_response(429, {"error": "rate limited"})
     with patch.object(client._session, "post", return_value=mock_429):
-        with patch("brainfm_radio.brainfm_client.asyncio.sleep", new_callable=AsyncMock):
-            with pytest.raises(APIError, match="Rate limited"):
-                await client.login("user@example.com", "password123")
+        with pytest.raises(APIError, match="Rate limited"):
+            await client.login("user@example.com", "password123")
 
 
 @pytest.mark.asyncio

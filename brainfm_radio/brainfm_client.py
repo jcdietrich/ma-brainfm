@@ -82,34 +82,31 @@ class BrainfmClient:
         headers["Content-Type"] = "application/json"
 
         logger.debug("Brain.fm login request to %s (cf_bm=%s)", url, bool(cf_bm))
-        last_exc: Exception | None = None
-        for attempt in range(4):
-            if attempt > 0:
-                delay = min(2 ** attempt * 2, 30)
-                logger.debug("Retrying login in %ds (attempt %d/4)", delay, attempt + 1)
-                await asyncio.sleep(delay)
-            async with self._session.post(url, json=payload, headers=headers) as resp:
-                body_text = await resp.text()
-                logger.debug("Brain.fm login response: status=%d body=%s", resp.status, body_text[:200])
-                if resp.status == 200:
-                    try:
-                        data: dict[str, Any] = await resp.json()
-                    except Exception:
-                        data = {}
-                    token = data.get("token") or data.get("result")
-                    if not token:
-                        raise APIError(f"Login response missing token: {body_text[:200]}")
-                    return token
-                error_msg = body_text.lower()
-                if "incorrect" in error_msg or "invalid" in error_msg or "password" in error_msg:
-                    raise LoginFailed(f"Invalid email or password: {body_text[:200]}")
-                if resp.status == 429:
-                    last_exc = APIError("Rate limited by Cloudflare (429)")
-                    continue
-                if resp.status in (400, 401, 403):
-                    raise LoginFailed(f"Login rejected ({resp.status}): {body_text[:200]}")
-                raise APIError(f"Login failed with status {resp.status}: {body_text[:200]}")
-        raise last_exc  # type: ignore[misc]
+        async with self._session.post(url, json=payload, headers=headers) as resp:
+            body_text = await resp.text()
+            logger.debug("Brain.fm login response: status=%d body=%s", resp.status, body_text[:200])
+            if resp.status == 200:
+                try:
+                    data: dict[str, Any] = await resp.json()
+                except Exception:
+                    data = {}
+                token = data.get("token") or data.get("result")
+                if not token:
+                    raise APIError(f"Login response missing token: {body_text[:200]}")
+                return token
+            error_msg = body_text.lower()
+            if "incorrect" in error_msg or "invalid" in error_msg or "password" in error_msg:
+                raise LoginFailed(f"Invalid email or password: {body_text[:200]}")
+            if resp.status == 429:
+                raise APIError(
+                    "Rate limited by Cloudflare (429). "
+                    "Wait 5-10 minutes before trying again. "
+                    "If this keeps happening, copy the __cf_bm cookie from your browser "
+                    "(DevTools → Application → Cookies → api.brain.fm) into the provider config."
+                )
+            if resp.status in (400, 401, 403):
+                raise LoginFailed(f"Login rejected ({resp.status}): {body_text[:200]}")
+            raise APIError(f"Login failed with status {resp.status}: {body_text[:200]}")
 
     def get_user_id(self, token: str) -> str:
         """Extract user ID from JWT token."""

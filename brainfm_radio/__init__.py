@@ -1,6 +1,7 @@
 """Brain.fm Radio provider for Music Assistant."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator, Sequence
 from typing import TYPE_CHECKING
@@ -71,7 +72,7 @@ class BrainfmRadioProvider(MusicProvider):
 
             # Fetch activities for all modes
             self._activities = {}
-            for mode in MODES:
+            for i, mode in enumerate(MODES):
                 try:
                     activities = await self._client.get_activities(self._session_token, mode)
                     self._activities[mode] = activities
@@ -79,6 +80,8 @@ class BrainfmRadioProvider(MusicProvider):
                 except BrainfmError as err:
                     logger.warning("Failed to fetch %s activities: %s", mode, err)
                     self._activities[mode] = []
+                if i < len(MODES) - 1:
+                    await asyncio.sleep(0.5)
 
         except BrainfmError as err:
             logger.error("Failed to authenticate with Brain.fm: %s", err)
