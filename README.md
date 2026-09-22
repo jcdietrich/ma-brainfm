@@ -14,17 +14,20 @@ curl -fsSL https://raw.githubusercontent.com/jcd/ma-brainfm/main/scripts/install
 
 This copies the provider into the Music Assistant container and restarts it.
 
-**To survive HA restarts**, install the watcher add-on:
+**To survive HA/MA updates**, run the deploy script after each update:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jcd/ma-brainfm/main/scripts/install_watcher_addon.sh | sh
+bash /path/to/ma-brainfm/scripts/deploy_to_ha.sh
 ```
 
-Then in HA: **Settings → Add-ons → Store → Refresh → MA Provider Watcher → Install → Start**
+Or one-liner from the repo root:
 
-Enable **Protection Mode: OFF** for Docker access.
+```bash
+git clone https://github.com/jcdietrich/ma-brainfm.git && cd ma-brainfm && bash scripts/deploy_to_ha.sh
+```
 
-See [WATCHER_ADDON.md](WATCHER_ADDON.md) for details.
+The provider files are also stored persistently at:
+`/config/custom_components/mass/providers/brainfm_radio/`
 
 ### Standalone (pip)
 
