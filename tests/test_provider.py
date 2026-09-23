@@ -72,7 +72,7 @@ async def test_browse_focus_category(provider):
             {"id": "act_3", "displayValue": "Motivation"},
         ]
     }
-    result = await provider.browse("brainfm://Focus")
+    result = await provider.browse("brainfm_radio://brainfm://Focus")
     assert len(result) == 3
     names = [r.name for r in result]
     assert "Deep Work" in names

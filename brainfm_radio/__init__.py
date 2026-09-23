@@ -99,19 +99,21 @@ class BrainfmRadioProvider(MusicProvider):
     async def browse(self, path: str) -> Sequence[MediaItemType | ItemMapping | BrowseFolder]:
         """Browse Brain.fm stations grouped by category."""
         logger.debug("Brain.fm browse called with path=%r, activities=%s", path, bool(self._activities))
-        if path == "" or path == "brainfm://":
+        subpath = path.split("://", 1)[1] if "://" in path else ""
+        if not subpath:
             # Return top-level categories
             return [
                 BrowseFolder(
                     item_id=f"brainfm://{cat}",
                     provider=self.instance_id,
                     name=cat,
+                    path=f"{self.instance_id}://brainfm://{cat}",
                 )
                 for cat in CATEGORIES
             ]
 
-        if path.startswith("brainfm://"):
-            category = path.replace("brainfm://", "")
+        if subpath.startswith("brainfm://"):
+            category = subpath.replace("brainfm://", "")
             activities = self._get_activities_for_category(category)
             logger.debug(
                 "Brain.fm browse category=%r found %d activities", category, len(activities)
@@ -144,6 +146,29 @@ class BrainfmRadioProvider(MusicProvider):
             return self._activities[mode]
         return []
 
+    async def get_radio(self, prov_radio_id: str) -> Radio:
+        """Get full radio details by id."""
+        for activities in (self._activities or {}).values():
+            for a in activities:
+                if a["id"] == prov_radio_id:
+                    return Radio(
+                        item_id=a["id"],
+                        provider=self.instance_id,
+                        name=a.get("displayValue", a.get("name", "Unknown")),
+                        provider_mappings={
+                            ProviderMapping(
+                                item_id=a["id"],
+                                provider_domain=self.domain,
+                                provider_instance=self.instance_id,
+                                available=True,
+                                audio_format=AudioFormat(
+                                    content_type=ContentType.MPEG,
+                                ),
+                            )
+                        },
+                    )
+        raise BrainfmError(f"Activity {prov_radio_id} not found")
+
     async def get_stream_details(self, item_id: str, media_type: MediaType) -> StreamDetails:
         """Get stream details for a Brain.fm activity."""
         if not self._client or not self._session_token or not self._user_id:
@@ -154,6 +179,7 @@ class BrainfmRadioProvider(MusicProvider):
             self._user_id,
             item_id,
         )
+        logger.info("Brain.fm session_info: %s", session_info)
         stream_url = session_info.get("tokenedUrl") or session_info.get("cdnUrl", "")
         if not stream_url:
             raise BrainfmError("No stream URL in session response")

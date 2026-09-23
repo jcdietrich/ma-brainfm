@@ -165,15 +165,23 @@ async def test_get_activities_error(client):
 
 # --- Session creation tests ---
 
+
 @pytest.mark.asyncio
 async def test_create_session(client):
+    """Session API returns {"result": {"servings": [{track, trackVariation}]}}."""
     mock_resp = _make_response(200, {
         "result": {
-            "trackVariation": {
-                "tokenedUrl": "https://audio2.brain.fm/track.mp3?token=abc",
-                "cdnUrl": "https://cdn.brain.fm/track.mp3",
-                "lengthInSeconds": 1200,
-            }
+            "type": "Dynamic",
+            "servings": [
+                {
+                    "track": {"id": "t1"},
+                    "trackVariation": {
+                        "tokenedUrl": "https://audio2.brain.fm/track.mp3?token=abc",
+                        "cdnUrl": "https://cdn.brain.fm/track.mp3",
+                        "lengthInSeconds": 1200,
+                    }
+                }
+            ]
         }
     })
     with patch.object(client._session, "post", return_value=mock_resp):
@@ -182,13 +190,19 @@ async def test_create_session(client):
         assert result["lengthInSeconds"] == 1200
 
 
+
 @pytest.mark.asyncio
 async def test_create_session_with_genres(client):
     mock_resp = _make_response(200, {
         "result": {
-            "trackVariation": {
-                "tokenedUrl": "https://audio2.brain.fm/track.mp3",
-            }
+            "servings": [
+                {
+                    "track": {"id": "t1"},
+                    "trackVariation": {
+                        "tokenedUrl": "https://audio2.brain.fm/track.mp3",
+                    }
+                }
+            ]
         }
     })
     with patch.object(client._session, "post", return_value=mock_resp) as mock_post:

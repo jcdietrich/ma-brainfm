@@ -159,8 +159,22 @@ class BrainfmClient:
             if resp.status != 200:
                 raise APIError(f"Session creation failed with status {resp.status}: {body_text[:200]}")
             data: dict[str, Any] = await resp.json()
+            logger.info("Brain.fm session raw response: %s", json.dumps(data)[:1000])
             result = data.get("result", data)
-            track_variation = result.get("trackVariation", result)
+            # result is normally {"type": "Dynamic", "servings": [{track, trackVariation, ...}, ...]}
+            # but can also be a bare list [{track, trackVariation}, ...] or a dict with trackVariation
+            if isinstance(result, dict):
+                servings = result.get("servings")
+                if isinstance(servings, list) and servings and isinstance(servings[0], dict):
+                    first = servings[0]
+                else:
+                    first = result
+            elif isinstance(result, list) and result:
+                first = result[0] if isinstance(result[0], dict) else {}
+            else:
+                first = {}
+            track_variation = first.get("trackVariation", first) if isinstance(first, dict) else {}
+            logger.info("Brain.fm session track_variation keys: %s", list(track_variation.keys()) if isinstance(track_variation, dict) else type(track_variation))
             return track_variation
 
     async def close(self) -> None:
